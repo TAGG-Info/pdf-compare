@@ -2,7 +2,7 @@
 pdf-compare: Modern CLI tool for comparing PDF files
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "ADR3N4LYN3"
 __license__ = "MIT"
 

@@ -4,9 +4,8 @@ PDF Renderer module - Converts PDF pages to images using PyMuPDF
 
 import fitz  # PyMuPDF
 from PIL import Image
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 from contextlib import contextmanager
-import io
 
 
 class PDFRenderer:
@@ -23,9 +22,12 @@ class PDFRenderer:
         self.zoom = dpi / 72  # 72 is the default DPI for PDF
 
     @contextmanager
-    def _open_pdf(self, pdf_path: str):
+    def open_document(self, pdf_path: str):
         """
-        Context manager for opening PDF documents
+        Context manager for opening PDF documents.
+
+        Open a PDF once and render several pages from the yielded document to
+        avoid the cost of re-parsing the file for every page.
 
         Args:
             pdf_path: Path to the PDF file
@@ -34,8 +36,8 @@ class PDFRenderer:
             fitz.Document: Opened PDF document
 
         Example:
-            with renderer._open_pdf("file.pdf") as doc:
-                page = doc[0]
+            with renderer.open_document("file.pdf") as doc:
+                img = renderer.render_page_from_doc(doc, 0)
         """
         doc = None
         try:
@@ -47,6 +49,31 @@ class PDFRenderer:
             if doc is not None:
                 doc.close()
 
+    # Backwards-compatible private alias.
+    _open_pdf = open_document
+
+    def render_page_from_doc(self, doc, page_num: int) -> Image.Image:
+        """
+        Render a single page from an already-open PyMuPDF document.
+
+        Args:
+            doc: An open ``fitz.Document``
+            page_num: Page number (0-indexed)
+
+        Returns:
+            PIL Image object of the rendered page
+        """
+        if page_num >= doc.page_count:
+            raise ValueError(
+                f"Page {page_num} does not exist (total: {doc.page_count})"
+            )
+
+        page = doc[page_num]
+        mat = fitz.Matrix(self.zoom, self.zoom)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        # Convert pixmap to PIL Image directly (faster than PNG encoding)
+        return Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
     def get_page_count(self, pdf_path: str) -> int:
         """
         Get the number of pages in a PDF
@@ -57,7 +84,7 @@ class PDFRenderer:
         Returns:
             Number of pages in the PDF
         """
-        with self._open_pdf(pdf_path) as doc:
+        with self.open_document(pdf_path) as doc:
             return doc.page_count
 
     def render_page(self, pdf_path: str, page_num: int) -> Image.Image:
@@ -72,23 +99,8 @@ class PDFRenderer:
             PIL Image object of the rendered page
         """
         try:
-            with self._open_pdf(pdf_path) as doc:
-                if page_num >= doc.page_count:
-                    raise ValueError(f"Page {page_num} does not exist in '{pdf_path}' (total: {doc.page_count})")
-
-                page = doc[page_num]
-
-                # Create a matrix for the zoom factor
-                mat = fitz.Matrix(self.zoom, self.zoom)
-
-                # Render page to pixmap
-                pix = page.get_pixmap(matrix=mat, alpha=False)
-
-                # Convert pixmap to PIL Image directly (faster than PNG encoding)
-                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-
-                return img
-
+            with self.open_document(pdf_path) as doc:
+                return self.render_page_from_doc(doc, page_num)
         except Exception as e:
             raise RuntimeError(f"Failed to render page {page_num} from '{pdf_path}': {str(e)}")
 
@@ -103,19 +115,11 @@ class PDFRenderer:
             List of PIL Image objects, one per page
         """
         try:
-            with self._open_pdf(pdf_path) as doc:
-                images = []
-                mat = fitz.Matrix(self.zoom, self.zoom)
-
-                for page_num in range(doc.page_count):
-                    page = doc[page_num]
-                    pix = page.get_pixmap(matrix=mat, alpha=False)
-                    # Convert pixmap to PIL Image directly (faster than PNG encoding)
-                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                    images.append(img)
-
-                return images
-
+            with self.open_document(pdf_path) as doc:
+                return [
+                    self.render_page_from_doc(doc, page_num)
+                    for page_num in range(doc.page_count)
+                ]
         except Exception as e:
             raise RuntimeError(f"Failed to render pages from '{pdf_path}': {str(e)}")
 
@@ -131,7 +135,7 @@ class PDFRenderer:
             Tuple of (width, height) in pixels
         """
         try:
-            with self._open_pdf(pdf_path) as doc:
+            with self.open_document(pdf_path) as doc:
                 page = doc[page_num]
                 rect = page.rect
 

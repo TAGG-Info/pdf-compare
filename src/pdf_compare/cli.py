@@ -135,8 +135,13 @@ def main(pdf1, pdf2, output_diff, output_json, output_html, output_images, outpu
             print_info(f"  DPI: {dpi}, Threshold: {threshold}")
             print("")
 
+        # Region detection is only needed when a report displays/exports it.
+        needs_regions = (not quiet) and bool(
+            output_diff or output_json or output_html or output_text or verbose
+        )
+
         # Perform comparison
-        stats = comparator.compare(pdf1, pdf2)
+        stats = comparator.compare(pdf1, pdf2, detect_regions=needs_regions)
 
         # Close progress bar
         if pbar:

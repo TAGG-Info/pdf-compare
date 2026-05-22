@@ -31,7 +31,7 @@ pip install pdf-compare
 
 ```bash
 # Clone the repository
-git clone https://github.com/ADR3N4LYN3/pdf-compare.git
+git clone https://github.com/TAGG-Info/pdf-compare.git
 cd pdf-compare
 
 # Install dependencies and the tool
@@ -448,7 +448,7 @@ This tool improves upon [vslavik/diff-pdf](https://github.com/vslavik/diff-pdf):
 
 ```bash
 # Clone the repository
-git clone https://github.com/ADR3N4LYN3/pdf-compare.git
+git clone https://github.com/TAGG-Info/pdf-compare.git
 cd pdf-compare
 
 # Install directly (no virtual environment needed)
@@ -510,7 +510,7 @@ Contributions are welcome! Please feel free to submit pull requests, report bugs
 
 1. **Fork the repository**
    ```bash
-   git clone https://github.com/ADR3N4LYN3/pdf-compare.git
+   git clone https://github.com/TAGG-Info/pdf-compare.git
    ```
 
 2. **Create a feature branch**
@@ -563,9 +563,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 🐛 **Issues**: [GitHub Issues](https://github.com/ADR3N4LYN3/pdf-compare/issues)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/TAGG-Info/pdf-compare/issues)
 - 📖 **Documentation**: [docs/](docs/) folder
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/ADR3N4LYN3/pdf-compare/discussions)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/TAGG-Info/pdf-compare/discussions)
 
 ---
 
@@ -591,5 +591,5 @@ Future enhancements planned:
 </p>
 
 <p align="center">
-  <a href="https://github.com/ADR3N4LYN3/pdf-compare">⭐ Star this repo if you find it useful!</a>
+  <a href="https://github.com/TAGG-Info/pdf-compare">⭐ Star this repo if you find it useful!</a>
 </p>
