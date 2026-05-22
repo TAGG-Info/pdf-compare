@@ -9,7 +9,7 @@ Thank you for your interest in contributing to pdf-compare! This document provid
 1. **Fork and clone the repository**
 
    ```bash
-   git clone https://github.com/ADR3N4LYN3/pdf-compare.git
+   git clone https://github.com/TAGG-Info/pdf-compare.git
    cd pdf-compare
    ```
 

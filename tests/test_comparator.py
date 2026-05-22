@@ -108,7 +108,59 @@ class TestPDFDiffer:
 
         similarity = differ.calculate_similarity_percentage(img1, img2)
 
-        assert 0.0 <= similarity < 100.0
+        # Two fully-different images must report 0% similarity (regression test:
+        # the denominator used to be width*height*3, capping difference at ~33%).
+        assert similarity == 0.0
+
+    def test_diff_pixels_count_matches_pixel_count(self):
+        """diff_pixels must be counted per pixel, not per RGB channel"""
+        differ = PDFDiffer()
+        img1 = Image.new('RGB', (100, 100), color='white')
+        img2 = Image.new('RGB', (100, 100), color='black')
+
+        _, _, diff_pixels = differ.compare_images(img1, img2)
+
+        assert diff_pixels == 100 * 100
+
+    def test_analyze_single_pass(self):
+        """analyze() returns verdict, diff image, pixel count and regions"""
+        differ = PDFDiffer()
+        img1 = Image.new('RGB', (100, 100), color='white')
+        img2 = Image.new('RGB', (100, 100), color='black')
+
+        is_identical, diff_img, diff_pixels, regions = differ.analyze(img1, img2)
+
+        assert is_identical is False
+        assert diff_pixels == 100 * 100
+        assert diff_img.size == (100, 100)
+        assert len(regions) >= 1
+
+    def test_analyze_skips_regions_when_disabled(self):
+        """analyze(detect_regions=False) must not compute regions"""
+        differ = PDFDiffer()
+        img1 = Image.new('RGB', (100, 100), color='white')
+        img2 = Image.new('RGB', (100, 100), color='black')
+
+        _, _, _, regions = differ.analyze(img1, img2, detect_regions=False)
+
+        assert regions == []
+
+    def test_find_difference_regions_locates_box(self):
+        """A single rectangular difference should yield one bounding box"""
+        differ = PDFDiffer()
+        img1 = Image.new('RGB', (200, 200), color='white')
+        img2 = Image.new('RGB', (200, 200), color='white')
+        # Draw a black rectangle from (50,60) to (110,140) on the second image
+        for x in range(50, 110):
+            for y in range(60, 140):
+                img2.putpixel((x, y), (0, 0, 0))
+
+        regions = differ.find_difference_regions(img1, img2)
+
+        assert len(regions) == 1
+        bbox = regions[0]
+        assert bbox.x1 == 50 and bbox.y1 == 60
+        assert bbox.x2 == 110 and bbox.y2 == 140
 
 
 class TestStatsCalculator:
@@ -241,6 +293,81 @@ class TestPDFComparator:
 
             with pytest.raises(RuntimeError):
                 comparator.save_diff_pdf(output_path)
+
+
+class TestEndToEnd:
+    """End-to-end tests on real PDFs (render -> diff -> stats pipeline)"""
+
+    @staticmethod
+    def _make_pdf(path, pages_text):
+        fitz = pytest.importorskip("fitz")
+        doc = fitz.open()
+        for text in pages_text:
+            page = doc.new_page()
+            page.insert_text((72, 72), text, fontsize=24)
+        doc.save(path)
+        doc.close()
+
+    def test_identical_pdfs(self):
+        """Identical PDFs compare as identical with 100% similarity"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p1 = os.path.join(tmpdir, "a.pdf")
+            p2 = os.path.join(tmpdir, "b.pdf")
+            self._make_pdf(p1, ["Hello world", "Second page"])
+            self._make_pdf(p2, ["Hello world", "Second page"])
+
+            comparator = PDFComparator(dpi=72)
+            stats = comparator.compare(p1, p2)
+
+            assert stats.are_identical is True
+            assert stats.overall_similarity == 100.0
+            assert comparator.get_exit_code() == 0
+
+    def test_different_pdfs(self):
+        """PDFs with different content compare as different"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p1 = os.path.join(tmpdir, "a.pdf")
+            p2 = os.path.join(tmpdir, "b.pdf")
+            self._make_pdf(p1, ["Hello world"])
+            self._make_pdf(p2, ["Completely different text here"])
+
+            comparator = PDFComparator(dpi=72)
+            stats = comparator.compare(p1, p2)
+
+            assert stats.are_identical is False
+            assert stats.different_pages == 1
+            assert stats.page_stats[0].similarity_percentage < 100.0
+            assert comparator.get_exit_code() == 1
+
+    def test_different_page_counts(self):
+        """PDFs with different page counts are never identical"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p1 = os.path.join(tmpdir, "a.pdf")
+            p2 = os.path.join(tmpdir, "b.pdf")
+            self._make_pdf(p1, ["Page one", "Page two"])
+            self._make_pdf(p2, ["Page one"])
+
+            comparator = PDFComparator(dpi=72)
+            stats = comparator.compare(p1, p2)
+
+            assert stats.pdf1_pages == 2
+            assert stats.pdf2_pages == 1
+            assert stats.pages_compared == 1
+            assert stats.are_identical is False
+
+    def test_compare_without_regions(self):
+        """Comparison with detect_regions=False still yields a verdict"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p1 = os.path.join(tmpdir, "a.pdf")
+            p2 = os.path.join(tmpdir, "b.pdf")
+            self._make_pdf(p1, ["Hello"])
+            self._make_pdf(p2, ["World"])
+
+            comparator = PDFComparator(dpi=72)
+            stats = comparator.compare(p1, p2, detect_regions=False)
+
+            assert stats.are_identical is False
+            assert stats.page_stats[0].num_difference_regions == 0
 
 
 # Run tests with: pytest tests/test_comparator.py -v

@@ -2,7 +2,7 @@
 PDF Comparator - Main orchestration module for PDF comparison
 """
 
-from typing import List, Tuple, Optional, Callable
+from typing import List, Optional, Callable
 from PIL import Image
 import os
 
@@ -38,13 +38,16 @@ class PDFComparator:
         self.stats: Optional[DiffStats] = None
         self.diff_images: List[Image.Image] = []
 
-    def compare(self, pdf1_path: str, pdf2_path: str) -> DiffStats:
+    def compare(self, pdf1_path: str, pdf2_path: str, detect_regions: bool = True) -> DiffStats:
         """
         Compare two PDF files
 
         Args:
             pdf1_path: Path to first PDF
             pdf2_path: Path to second PDF
+            detect_regions: Whether to compute difference-region bounding boxes.
+                            Set to False to skip the (more expensive) region
+                            detection when only an overall verdict is needed.
 
         Returns:
             DiffStats object with comparison results
@@ -58,43 +61,41 @@ class PDFComparator:
         self.pdf1_path = pdf1_path
         self.pdf2_path = pdf2_path
 
-        # Get page counts
-        pdf1_pages = self.renderer.get_page_count(pdf1_path)
-        pdf2_pages = self.renderer.get_page_count(pdf2_path)
-
-        # Determine how many pages to compare
-        pages_to_compare = min(pdf1_pages, pdf2_pages)
-
-        # Compare each page
         page_stats_list = []
         self.diff_images = []
 
-        for page_num in range(pages_to_compare):
-            if self.progress_callback:
-                self.progress_callback(page_num + 1, pages_to_compare)
+        # Open each PDF once and render pages from the open document.
+        with self.renderer.open_document(pdf1_path) as doc1, \
+                self.renderer.open_document(pdf2_path) as doc2:
+            pdf1_pages = doc1.page_count
+            pdf2_pages = doc2.page_count
+            pages_to_compare = min(pdf1_pages, pdf2_pages)
 
-            # Render pages
-            img1 = self.renderer.render_page(pdf1_path, page_num)
-            img2 = self.renderer.render_page(pdf2_path, page_num)
+            for page_num in range(pages_to_compare):
+                if self.progress_callback:
+                    self.progress_callback(page_num + 1, pages_to_compare)
 
-            # Normalize sizes
-            img1, img2 = self.renderer.normalize_images(img1, img2)
+                # Render pages
+                img1 = self.renderer.render_page_from_doc(doc1, page_num)
+                img2 = self.renderer.render_page_from_doc(doc2, page_num)
 
-            # Compare
-            is_identical, diff_img, diff_pixels = self.differ.compare_images(img1, img2)
+                # Normalize sizes
+                img1, img2 = self.renderer.normalize_images(img1, img2)
 
-            # Find difference regions
-            diff_regions = self.differ.find_difference_regions(img1, img2)
+                # Compare (single pass: diff image, pixel count and regions)
+                is_identical, diff_img, diff_pixels, diff_regions = self.differ.analyze(
+                    img1, img2, detect_regions=detect_regions
+                )
 
-            # Calculate stats
-            total_pixels = img1.width * img1.height * 3  # RGB channels
-            page_stats = StatsCalculator.calculate_page_stats(
-                page_num, is_identical, total_pixels, diff_pixels, diff_regions
-            )
-            page_stats_list.append(page_stats)
+                # Calculate stats (diff_pixels is counted per pixel, so is total)
+                total_pixels = img1.width * img1.height
+                page_stats = StatsCalculator.calculate_page_stats(
+                    page_num, is_identical, total_pixels, diff_pixels, diff_regions
+                )
+                page_stats_list.append(page_stats)
 
-            # Store diff image
-            self.diff_images.append(diff_img)
+                # Store diff image
+                self.diff_images.append(diff_img)
 
         # Calculate overall stats
         self.stats = StatsCalculator.calculate_overall_stats(

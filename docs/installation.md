@@ -30,7 +30,7 @@ Si Python n'est pas installé : [Télécharger Python](https://www.python.org/do
 
 **Option A : Avec Git**
 ```powershell
-git clone https://github.com/ADR3N4LYN3/pdf-compare.git
+git clone https://github.com/TAGG-Info/pdf-compare.git
 cd pdf-compare
 ```
 
@@ -189,4 +189,4 @@ En cas de problème :
 1. Vérifier les prérequis (Python 3.8+)
 2. Vérifier que pdf-compare est bien installé : `pdf-compare --version`
 3. Consulter les logs d'erreur
-4. Ouvrir une issue sur [GitHub](https://github.com/ADR3N4LYN3/pdf-compare/issues)
+4. Ouvrir une issue sur [GitHub](https://github.com/TAGG-Info/pdf-compare/issues)
