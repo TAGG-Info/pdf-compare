@@ -5,7 +5,7 @@ REM  Installation LOCALE de pdf-compare (deploiement depuis serveur)
 REM  - Ce script peut etre lance directement depuis un partage reseau.
 REM  - Il copie le projet sur le poste, puis l'installe en local.
 REM  - Le poste devient autonome : plus aucune dependance au serveur.
-REM  Prerequis : Python 3.8+ deja installe sur le poste.
+REM  Prerequis : Python 3.9+ deja installe sur le poste.
 REM ============================================================
 
 echo.
@@ -34,7 +34,7 @@ if errorlevel 1 (
     if errorlevel 1 (
         echo [ERREUR] Python n'est pas installe ou pas dans le PATH
         echo.
-        echo Veuillez installer Python 3.8 ou superieur depuis :
+        echo Veuillez installer Python 3.9 ou superieur depuis :
         echo https://www.python.org/downloads/
         echo.
         pause
@@ -46,6 +46,16 @@ if errorlevel 1 (
 )
 echo [1/5] Python detecte
 %PYTHON_CMD% --version
+
+REM --- Verifier la version minimale requise (Python 3.9+)
+%PYTHON_CMD% -c "import sys; sys.exit(0 if sys.version_info >= (3,9) else 1)"
+if errorlevel 1 (
+    echo [ERREUR] Python 3.9 ou superieur est requis ^(voir version ci-dessus^).
+    echo Veuillez mettre a jour Python : https://www.python.org/downloads/
+    echo.
+    pause
+    exit /b 1
+)
 echo.
 
 REM --- [2/5] Copier le projet en local (exclut .git, venv, caches...)
