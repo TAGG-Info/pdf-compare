@@ -148,6 +148,8 @@ Thumbs.db
 
 # Project specific
 test_pdfs/
+# Deployment build artifact (generated via `git archive`)
+pdf-compare-*.zip
 *.pdf
 *.png
 *.jpg
