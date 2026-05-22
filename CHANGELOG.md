@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-05-22
+
+### Fixed
+
+- Similarity percentage was inflated (the pixel total was counted per RGB
+  channel while differences were counted per pixel); fully-different pages
+  now correctly report 0% similarity instead of ~66%.
+
+### Changed
+
+- Difference-region detection now uses `scipy.ndimage` connected components
+  instead of a pure-Python flood fill (much faster on real pages).
+- Each page diff is computed in a single pass and region detection is skipped
+  when not needed; each PDF is opened once instead of per page.
+- Repository URLs aligned to `github.com/TAGG-Info/pdf-compare`.
+- Packaging consolidated on `pyproject.toml` (removed `setup.py`); dependency
+  ranges bounded, `scipy` added, minimum Python raised to 3.9.
+- `install.bat` now verifies Python >= 3.9.
+
+### Added
+
+- Regression and end-to-end tests, plus a GitHub Actions CI workflow.
+
 ## [1.0.0] - 2024-11-04
 
 ### Added
@@ -133,4 +156,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.1.0]: https://github.com/TAGG-Info/pdf-compare/releases/tag/v1.1.0
 [1.0.0]: https://github.com/TAGG-Info/pdf-compare/releases/tag/v1.0.0

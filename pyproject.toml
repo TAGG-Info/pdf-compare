@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf-compare"
-version = "1.0.0"
+version = "1.1.0"
 description = "Modern CLI tool for comparing PDF files with advanced visual diff capabilities"
 authors = [{name = "ADR3N4LYN3"}]
 readme = "README.md"

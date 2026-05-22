@@ -10,7 +10,7 @@ REM ============================================================
 
 echo.
 echo ========================================
-echo   Installation de pdf-compare v1.0.0
+echo   Installation de pdf-compare v1.1.0
 echo ========================================
 echo.
 
