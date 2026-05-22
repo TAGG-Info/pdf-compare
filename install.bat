@@ -58,9 +58,11 @@ if errorlevel 1 (
 )
 echo.
 
-REM --- [2/5] Copier le projet en local (exclut .git, venv, caches...)
+REM --- [2/5] Copier le projet en local (miroir exact ; exclut .git, venv, caches...)
+REM /MIR : la copie locale reflete exactement le serveur (les fichiers
+REM        supprimes en amont sont aussi retires du poste).
 echo [2/5] Copie du projet vers le poste...
-robocopy "%SRC%" "%APP%" /E /NFL /NDL /NJH /NJS /NP /XD ".git" "venv" ".venv" "__pycache__" "build" "dist" ".vscode" /XF "*.pyc" >nul
+robocopy "%SRC%" "%APP%" /MIR /NFL /NDL /NJH /NJS /NP /XD ".git" "venv" ".venv" "__pycache__" "build" "dist" ".vscode" /XF "*.pyc" >nul
 set "RC=%ERRORLEVEL%"
 if %RC% GEQ 8 (
     echo [ERREUR] Echec de la copie des fichiers ^(robocopy code %RC%^)
@@ -94,7 +96,10 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-"%VENV%\Scripts\python.exe" -m pip install "%APP%"
+REM --force-reinstall --no-deps : reinstalle toujours le code de pdf-compare
+REM (deps deja gerees ci-dessus) pour qu'un re-run mette a jour le poste a
+REM coup sur, meme si le numero de version n'a pas change.
+"%VENV%\Scripts\python.exe" -m pip install --force-reinstall --no-deps "%APP%"
 if errorlevel 1 (
     echo [ERREUR] Echec de l'installation de pdf-compare
     pause
