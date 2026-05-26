@@ -44,7 +44,7 @@ if errorlevel 1 (
 ) else (
     set "PYTHON_CMD=python"
 )
-echo [1/5] Python detecte
+echo [1/6] Python detecte
 %PYTHON_CMD% --version
 
 REM --- Verifier la version minimale requise (Python 3.9+)
@@ -58,10 +58,30 @@ if errorlevel 1 (
 )
 echo.
 
-REM --- [2/5] Copier le projet en local (miroir exact ; exclut .git, venv, caches...)
+REM --- [2/6] Nettoyer une ancienne installation dans le Python de base
+REM Une vieille install (souvent 'pip install -e .' vers un lecteur reseau)
+REM laisse un pdf-compare.exe casse qui masque la nouvelle version via le PATH.
+echo [2/6] Verification d'une ancienne installation...
+%PYTHON_CMD% -m pip show pdf-compare >nul 2>&1
+if errorlevel 1 goto :cleanup_done
+echo [INFO] Ancienne installation detectee dans le Python de base, suppression...
+%PYTHON_CMD% -m pip uninstall pdf-compare -y >nul 2>&1
+%PYTHON_CMD% -m pip show pdf-compare >nul 2>&1
+if errorlevel 1 (
+    echo [OK] Ancienne installation supprimee
+) else (
+    echo [ATTENTION] Suppression impossible - droits administrateur probablement requis.
+    echo             Relancez ce script en tant qu'ADMINISTRATEUR, ou faites executer :
+    echo               %PYTHON_CMD% -m pip uninstall pdf-compare -y
+    echo             Sinon l'ancienne version cassee peut repondre a la place de la bonne.
+)
+:cleanup_done
+echo.
+
+REM --- [3/6] Copier le projet en local (miroir exact ; exclut .git, venv, caches...)
 REM /MIR : la copie locale reflete exactement le serveur (les fichiers
 REM        supprimes en amont sont aussi retires du poste).
-echo [2/5] Copie du projet vers le poste...
+echo [3/6] Copie du projet vers le poste...
 robocopy "%SRC%" "%APP%" /MIR /NFL /NDL /NJH /NJS /NP /XD ".git" "venv" ".venv" "__pycache__" "build" "dist" ".vscode" /XF "*.pyc" >nul
 set "RC=%ERRORLEVEL%"
 if %RC% GEQ 8 (
@@ -72,8 +92,8 @@ if %RC% GEQ 8 (
 echo [OK] Fichiers copies dans %APP%
 echo.
 
-REM --- [3/5] Creer un environnement Python local dedie
-echo [3/5] Creation de l'environnement Python local...
+REM --- [4/6] Creer un environnement Python local dedie
+echo [4/6] Creation de l'environnement Python local...
 if not exist "%VENV%\Scripts\python.exe" (
     %PYTHON_CMD% -m venv "%VENV%"
     if errorlevel 1 (
@@ -85,8 +105,8 @@ if not exist "%VENV%\Scripts\python.exe" (
 echo [OK] Environnement pret
 echo.
 
-REM --- [4/5] Installer dependances + pdf-compare (installation REELLE, sans mode -e)
-echo [4/5] Installation des dependances et de pdf-compare...
+REM --- [5/6] Installer dependances + pdf-compare (installation REELLE, sans mode -e)
+echo [5/6] Installation des dependances et de pdf-compare...
 echo Cela peut prendre quelques minutes...
 echo.
 "%VENV%\Scripts\python.exe" -m pip install --upgrade pip --quiet
@@ -109,8 +129,8 @@ echo.
 echo [OK] Installation terminee
 echo.
 
-REM --- [5/5] Rendre 'pdf-compare' disponible (PATH utilisateur, sans droits admin)
-echo [5/5] Ajout de pdf-compare au PATH utilisateur...
+REM --- [6/6] Rendre 'pdf-compare' disponible (PATH utilisateur, sans droits admin)
+echo [6/6] Ajout de pdf-compare au PATH utilisateur...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$d='%VENV%\Scripts'; $p=[Environment]::GetEnvironmentVariable('Path','User'); if(-not $p){$p=''}; if($p.Split(';') -notcontains $d){[Environment]::SetEnvironmentVariable('Path',(($p.TrimEnd(';')+';'+$d).Trim(';')),'User'); '[OK] PATH utilisateur mis a jour'} else {'[OK] PATH deja configure'}"
 echo.
 
